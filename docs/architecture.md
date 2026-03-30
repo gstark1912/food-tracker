@@ -74,7 +74,7 @@ food-tracker/
 │   │   ├── App.vue
 │   │   └── main.js
 │   ├── Dockerfile
-│   ├── nginx.conf
+│   ├── nginx.conf.template          # Template nginx (envsubst reemplaza $PORT y $VITE_API_BASE_URL)
 │   ├── index.html
 │   └── package.json
 │
@@ -164,8 +164,11 @@ healthcheckPath = "/health"
 1. Crear un segundo servicio apuntando al directorio `web/`.
 2. Railway detecta el `Dockerfile` automáticamente.
 3. Configurar la variable de entorno:
-   - `VITE_API_URL` — URL pública de la API (ej: `https://food-tracker-api.up.railway.app`)
-4. El `Dockerfile` del frontend hace el build con Vite y sirve los estáticos con nginx.
+   - `VITE_API_BASE_URL` — URL pública de la API (ej: `https://food-tracker-api.up.railway.app`). Se usa en dos momentos:
+     - **Build time** (como `ARG`): Vite la embebe en el bundle del frontend.
+     - **Runtime** (como `ENV`): nginx la usa para hacer proxy reverso de `/api/*` hacia la API.
+4. Railway asigna automáticamente la variable `PORT` en runtime. El `Dockerfile` usa `envsubst` para inyectar `$PORT` y `$VITE_API_BASE_URL` en el template de nginx antes de arrancar.
+5. El archivo `nginx.conf.template` contiene placeholders `${PORT}` y `${VITE_API_BASE_URL}` que se resuelven en runtime. Las variables propias de nginx (`$uri`, `$host`, etc.) no se tocan porque `envsubst` recibe explícitamente solo las variables a reemplazar.
 
 ### Orden de deploy recomendado
 
