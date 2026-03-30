@@ -9,9 +9,5 @@ RUN npm run build
 
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
-ENV NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d
-ENV NGINX_ENVSUBST_TEMPLATE_SUFFIX=.template
-ENV NGINX_ENVSUBST_FILTER=PORT,VITE_API_BASE_URL
-EXPOSE ${PORT:-80}
-CMD ["nginx", "-g", "daemon off;"]
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
+CMD ["/bin/sh", "-c", "envsubst '$PORT $VITE_API_BASE_URL' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
