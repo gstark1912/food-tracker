@@ -9,8 +9,10 @@ server {
     }
 
     location /api/ {
-        proxy_pass $VITE_API_BASE_URL;
-        proxy_set_header Host $host;
+        resolver 1.1.1.1 valid=30s;
+        set $backend "${VITE_API_BASE_URL}";
+        proxy_pass $backend;
+        proxy_set_header Host $proxy_host;
         proxy_set_header X-Real-IP $remote_addr;
     }
 
