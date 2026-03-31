@@ -41,26 +41,27 @@ const emit = defineEmits(['update:momentEntry'])
 <style scoped>
 .moment-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   padding: 0.75rem 0;
   border-bottom: 1px solid #f0f0f0;
+  gap: 0.5rem;
 }
 .moment-row:last-child {
   border-bottom: none;
 }
 .moment-name {
   font-weight: 500;
-  min-width: 5rem;
   color: #555;
 }
 .moment-fields {
   display: flex;
-  gap: 1.5rem;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 .field {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.4rem;
 }
 .field-label {
