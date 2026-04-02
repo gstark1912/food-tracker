@@ -30,3 +30,16 @@ public record WeeklySummaryWithTrend(
 );
 
 public record StatisticsResponse(List<WeeklySummaryWithTrend> Summaries);
+
+public record WeeklyKpiData(
+    int Year,
+    int WeekNumber,
+    decimal AvgFood,
+    int TotalExercise,
+    int FinalizedDays
+);
+
+public record WeeklyKpiResponse(
+    WeeklyKpiData CurrentWeek,
+    WeeklyKpiData? PreviousWeek
+);

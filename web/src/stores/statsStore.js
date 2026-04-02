@@ -6,6 +6,10 @@ export const useStatsStore = defineStore('stats', () => {
     const loading = ref(false)
     const error = ref(null)
 
+    const kpis = ref(null)
+    const kpisLoading = ref(false)
+    const kpisError = ref(null)
+
     async function loadStats() {
         loading.value = true
         error.value = null
@@ -39,5 +43,20 @@ export const useStatsStore = defineStore('stats', () => {
         }
     }
 
-    return { summaries, loading, error, loadStats, registerWeight }
+    async function loadKpis() {
+        kpisLoading.value = true
+        kpisError.value = null
+        try {
+            const res = await fetch('/api/statistics/kpis')
+            if (!res.ok) throw new Error('Error al cargar KPIs')
+            const data = await res.json()
+            kpis.value = data
+        } catch (e) {
+            kpisError.value = e.message
+        } finally {
+            kpisLoading.value = false
+        }
+    }
+
+    return { summaries, loading, error, loadStats, registerWeight, kpis, kpisLoading, kpisError, loadKpis }
 })
