@@ -13,6 +13,7 @@ public static class TrackerEndpoints
         app.MapGet("/api/tracker/day/{date}", GetDayByDate);
         app.MapPut("/api/tracker/day/{date}", SaveDay);
         app.MapPost("/api/tracker/day/{date}/finalize", FinalizeDay);
+        app.MapGet("/api/tracker/days", GetDailyEntries);
     }
 
     private static readonly string[] MomentOrder = ["Mañana", "Mediodía", "Tarde", "Noche"];
@@ -21,6 +22,57 @@ public static class TrackerEndpoints
         moments.OrderBy(m => Array.IndexOf(MomentOrder, m.Moment))
                .Select(m => new MomentEntryDto(m.Moment, m.Food, m.Exercise))
                .ToList();
+
+    internal static (int page, int pageSize) NormalizePaginationParams(int page, int pageSize)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 50) pageSize = 10;
+        return (page, pageSize);
+    }
+
+    private static async Task<IResult> GetDailyEntries(
+        AppDbContext db, LocalClock clock,
+        int page = 1, int pageSize = 10)
+    {
+        (page, pageSize) = NormalizePaginationParams(page, pageSize);
+
+        var today = clock.Today;
+
+        var totalCount = await db.DayEntries
+            .CountAsync(d => d.IsFinalized && d.Date < today);
+
+        var entries = await db.DayEntries
+            .Include(d => d.Moments)
+            .Where(d => d.IsFinalized && d.Date < today)
+            .OrderByDescending(d => d.Date)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var items = entries.Select(MapToDailyEntryItem).ToList();
+        var hasMore = (page * pageSize) < totalCount;
+
+        return Results.Ok(new DailyEntriesResponse(items, totalCount, hasMore));
+    }
+
+    internal static DailyEntryItem MapToDailyEntryItem(DayEntry entry)
+    {
+        var momentDict = entry.Moments.ToDictionary(m => m.Moment);
+
+        int GetFood(string moment) =>
+            momentDict.TryGetValue(moment, out var m) ? m.Food : 0;
+
+        var totalExercise = entry.Moments.Sum(m => m.Exercise);
+
+        return new DailyEntryItem(
+            Date: entry.Date.ToString("yyyy-MM-dd"),
+            FoodMañana: GetFood("Mañana"),
+            FoodMediodia: GetFood("Mediodía"),
+            FoodTarde: GetFood("Tarde"),
+            FoodNoche: GetFood("Noche"),
+            TotalExercise: totalExercise
+        );
+    }
 
     private static async Task<IResult> GetNextPending(AppDbContext db, LocalClock clock)
     {

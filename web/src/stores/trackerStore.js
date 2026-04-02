@@ -85,5 +85,37 @@ export const useTrackerStore = defineStore('tracker', () => {
         if (moment) moment[field] = fibPrev(moment[field])
     }
 
-    return { currentEntry, loading, error, init, saveCurrentDay, finalizeDay, incrementMoment, decrementMoment }
+    const dailyEntries = ref([])
+    const dailyEntriesLoading = ref(false)
+    const dailyEntriesError = ref(null)
+    const dailyEntriesPage = ref(1)
+    const dailyEntriesHasMore = ref(false)
+
+    async function loadDailyEntries(page = 1) {
+        dailyEntriesLoading.value = true
+        dailyEntriesError.value = null
+        try {
+            const res = await fetch(`/api/tracker/days?page=${page}&pageSize=10`)
+            if (!res.ok) throw new Error('Error al cargar historial')
+            const data = await res.json()
+
+            if (page === 1) {
+                dailyEntries.value = data.items
+            } else {
+                dailyEntries.value = [...dailyEntries.value, ...data.items]
+            }
+            dailyEntriesPage.value = page
+            dailyEntriesHasMore.value = data.hasMore
+        } catch (e) {
+            dailyEntriesError.value = e.message
+        } finally {
+            dailyEntriesLoading.value = false
+        }
+    }
+
+    function loadMoreEntries() {
+        loadDailyEntries(dailyEntriesPage.value + 1)
+    }
+
+    return { currentEntry, loading, error, init, saveCurrentDay, finalizeDay, incrementMoment, decrementMoment, dailyEntries, dailyEntriesLoading, dailyEntriesError, dailyEntriesPage, dailyEntriesHasMore, loadDailyEntries, loadMoreEntries }
 })

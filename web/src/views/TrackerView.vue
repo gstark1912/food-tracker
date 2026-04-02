@@ -23,6 +23,8 @@
         @save="onSave"
         @finalize="onFinalize"
       />
+
+      <DailyEntriesList />
     </main>
   </div>
 </template>
@@ -32,10 +34,14 @@ import { onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useTrackerStore } from '../stores/trackerStore.js'
 import DayCard from '../components/DayCard.vue'
+import DailyEntriesList from '../components/DailyEntriesList.vue'
 
 const store = useTrackerStore()
 
-onMounted(() => store.init())
+onMounted(() => {
+  store.init()
+  store.loadDailyEntries(1)
+})
 
 function onMomentsUpdate(moments) {
   if (store.currentEntry) {

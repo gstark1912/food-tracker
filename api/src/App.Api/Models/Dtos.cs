@@ -43,3 +43,18 @@ public record WeeklyKpiResponse(
     WeeklyKpiData CurrentWeek,
     WeeklyKpiData? PreviousWeek
 );
+
+public record DailyEntryItem(
+    string Date,
+    int FoodMañana,
+    int FoodMediodia,
+    int FoodTarde,
+    int FoodNoche,
+    int TotalExercise
+);
+
+public record DailyEntriesResponse(
+    List<DailyEntryItem> Items,
+    int TotalCount,
+    bool HasMore
+);
