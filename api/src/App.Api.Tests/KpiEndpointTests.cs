@@ -81,9 +81,10 @@ public class KpiEndpointTests
         var result = StatisticsEndpoints.CalculateWeeklyKpi(days, 2025, 28);
 
         // totalFood = (3+5) + (8+2) + (1) = 19
-        // avgFood = Math.Round(19 / 3, 1) = Math.Round(6.333..., 1) = 6.3
-        Assert.Equal(Math.Round(19m / 3, 1, MidpointRounding.AwayFromZero), result.AvgFood);
-        Assert.Equal(6.3m, result.AvgFood);
+        // totalMoments = 2 + 2 + 1 = 5
+        // avgFood = Math.Round(19 / 5, 1) = Math.Round(3.8, 1) = 3.8
+        Assert.Equal(Math.Round(19m / 5, 1, MidpointRounding.AwayFromZero), result.AvgFood);
+        Assert.Equal(3.8m, result.AvgFood);
 
         // totalExercise = (5+0) + (3+8) + (2) = 18
         Assert.Equal(18, result.TotalExercise);

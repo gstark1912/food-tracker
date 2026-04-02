@@ -49,7 +49,7 @@ public class KpiCalculationTests
     /// Validates: Requirements 1.1, 1.5, 2.1, 2.2
     /// </summary>
     [Property(MaxTest = 100)]
-    public Property AvgFood_Equals_SumFood_DividedBy_DayCount()
+    public Property AvgFood_Equals_SumFood_DividedBy_MomentCount()
     {
         return Prop.ForAll(ArbDayEntries(), days =>
         {
@@ -60,8 +60,14 @@ public class KpiCalculationTests
                 return result.AvgFood == 0m;
             }
 
-            var totalFood = days.SelectMany(d => d.Moments).Sum(m => m.Food);
-            var expected = Math.Round((decimal)totalFood / days.Count, 1, MidpointRounding.AwayFromZero);
+            var allMoments = days.SelectMany(d => d.Moments).ToList();
+            if (allMoments.Count == 0)
+            {
+                return result.AvgFood == 0m;
+            }
+
+            var totalFood = allMoments.Sum(m => m.Food);
+            var expected = Math.Round((decimal)totalFood / allMoments.Count, 1, MidpointRounding.AwayFromZero);
             return result.AvgFood == expected;
         });
     }

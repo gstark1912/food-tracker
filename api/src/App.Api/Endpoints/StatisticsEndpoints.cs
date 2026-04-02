@@ -108,15 +108,14 @@ public static class StatisticsEndpoints
             return new WeeklyKpiData(year, weekNumber, 0m, 0, 0);
         }
 
-        var totalFood = finalizedDays
-            .SelectMany(d => d.Moments)
-            .Sum(m => m.Food);
+        var allMoments = finalizedDays.SelectMany(d => d.Moments).ToList();
 
-        var totalExercise = finalizedDays
-            .SelectMany(d => d.Moments)
-            .Sum(m => m.Exercise);
+        var totalFood = allMoments.Sum(m => m.Food);
+        var totalExercise = allMoments.Sum(m => m.Exercise);
 
-        var avgFood = Math.Round((decimal)totalFood / finalizedDays.Count, 1, MidpointRounding.AwayFromZero);
+        var avgFood = allMoments.Count > 0
+            ? Math.Round((decimal)totalFood / allMoments.Count, 1, MidpointRounding.AwayFromZero)
+            : 0m;
 
         return new WeeklyKpiData(year, weekNumber, avgFood, totalExercise, finalizedDays.Count);
     }
