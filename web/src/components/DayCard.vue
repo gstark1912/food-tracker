@@ -18,7 +18,6 @@
 
     <div v-if="!entry.isFinalized" class="actions">
       <button
-        v-if="entry.isCurrentDay"
         class="btn btn-secondary"
         :disabled="loading"
         @click="$emit('save')"

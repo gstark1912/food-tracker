@@ -77,8 +77,8 @@ public static class TrackerEndpoints
             return Results.BadRequest(new { error = $"Formato de fecha inválido: {date}. Use yyyy-MM-dd" });
 
         var today = clock.Today;
-        if (parsedDate != today)
-            return Results.BadRequest(new { error = $"Solo se puede editar el día actual. Fecha recibida: {date}" });
+        if (parsedDate > today)
+            return Results.BadRequest(new { error = $"No se puede editar un día futuro. Fecha recibida: {date}" });
 
         if (request.Moments == null || request.Moments.Count != 4)
             return Results.BadRequest(new { error = "Se requieren exactamente 4 momentos" });
