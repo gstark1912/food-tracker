@@ -1,31 +1,26 @@
 <template>
   <section class="daily-entries-list">
-    <h3 class="section-title">Historial</h3>
+    <h3 class="section-title">Esta semana</h3>
 
     <div class="entries">
       <DailyEntryRow
-        v-for="item in store.dailyEntries"
+        v-for="item in store.weekEntries"
         :key="item.date"
         :entry="item"
       />
     </div>
 
-    <p v-if="store.dailyEntriesError" class="error-msg">
-      {{ store.dailyEntriesError }}
+    <p v-if="store.weekEntriesError" class="error-msg">
+      {{ store.weekEntriesError }}
     </p>
 
-    <p v-if="store.dailyEntriesLoading" class="loading-msg">
+    <p v-if="store.weekEntriesLoading" class="loading-msg">
       Cargando...
     </p>
 
-    <button
-      v-if="store.dailyEntriesHasMore"
-      class="btn btn-load-more"
-      :disabled="store.dailyEntriesLoading"
-      @click="store.loadMoreEntries()"
-    >
-      Cargar más
-    </button>
+    <p v-if="!store.weekEntriesLoading && store.weekEntries.length === 0 && !store.weekEntriesError" class="empty-msg">
+      No hay días finalizados esta semana
+    </p>
   </section>
 </template>
 
@@ -69,23 +64,11 @@ const store = useTrackerStore()
   text-align: center;
 }
 
-.btn-load-more {
-  display: block;
-  width: 100%;
+.empty-msg {
+  color: #999;
+  font-size: 0.85rem;
   margin-top: 0.75rem;
-  padding: 0.6rem 1.25rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  background: #f0f0f0;
-  color: #1a1a1a;
-  transition: opacity 0.15s;
+  text-align: center;
 }
 
-.btn-load-more:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 </style>

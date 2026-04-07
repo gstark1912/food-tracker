@@ -14,6 +14,7 @@ public static class TrackerEndpoints
         app.MapPut("/api/tracker/day/{date}", SaveDay);
         app.MapPost("/api/tracker/day/{date}/finalize", FinalizeDay);
         app.MapGet("/api/tracker/days", GetDailyEntries);
+        app.MapGet("/api/tracker/days/current-week", GetCurrentWeekEntries);
     }
 
     private static readonly string[] MomentOrder = ["Mañana", "Mediodía", "Tarde", "Noche"];
@@ -53,6 +54,21 @@ public static class TrackerEndpoints
         var hasMore = (page * pageSize) < totalCount;
 
         return Results.Ok(new DailyEntriesResponse(items, totalCount, hasMore));
+    }
+    private static async Task<IResult> GetCurrentWeekEntries(AppDbContext db, LocalClock clock)
+    {
+        var today = clock.Today;
+        var dayOfWeek = today.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)today.DayOfWeek - 1;
+        var weekStart = today.AddDays(-dayOfWeek);
+
+        var entries = await db.DayEntries
+            .Include(d => d.Moments)
+            .Where(d => d.IsFinalized && d.Date >= weekStart && d.Date < today)
+            .OrderByDescending(d => d.Date)
+            .ToListAsync();
+
+        var items = entries.Select(MapToDailyEntryItem).ToList();
+        return Results.Ok(items);
     }
 
     internal static DailyEntryItem MapToDailyEntryItem(DayEntry entry)

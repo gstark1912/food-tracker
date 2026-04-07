@@ -85,6 +85,24 @@ export const useTrackerStore = defineStore('tracker', () => {
         if (moment) moment[field] = fibPrev(moment[field])
     }
 
+    const weekEntries = ref([])
+    const weekEntriesLoading = ref(false)
+    const weekEntriesError = ref(null)
+
+    async function loadCurrentWeekEntries() {
+        weekEntriesLoading.value = true
+        weekEntriesError.value = null
+        try {
+            const res = await fetch('/api/tracker/days/current-week')
+            if (!res.ok) throw new Error('Error al cargar la semana')
+            weekEntries.value = await res.json()
+        } catch (e) {
+            weekEntriesError.value = e.message
+        } finally {
+            weekEntriesLoading.value = false
+        }
+    }
+
     const dailyEntries = ref([])
     const dailyEntriesLoading = ref(false)
     const dailyEntriesError = ref(null)
@@ -117,5 +135,5 @@ export const useTrackerStore = defineStore('tracker', () => {
         loadDailyEntries(dailyEntriesPage.value + 1)
     }
 
-    return { currentEntry, loading, error, init, saveCurrentDay, finalizeDay, incrementMoment, decrementMoment, dailyEntries, dailyEntriesLoading, dailyEntriesError, dailyEntriesPage, dailyEntriesHasMore, loadDailyEntries, loadMoreEntries }
+    return { currentEntry, loading, error, init, saveCurrentDay, finalizeDay, incrementMoment, decrementMoment, weekEntries, weekEntriesLoading, weekEntriesError, loadCurrentWeekEntries, dailyEntries, dailyEntriesLoading, dailyEntriesError, dailyEntriesPage, dailyEntriesHasMore, loadDailyEntries, loadMoreEntries }
 })

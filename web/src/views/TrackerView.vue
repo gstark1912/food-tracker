@@ -40,7 +40,7 @@ const store = useTrackerStore()
 
 onMounted(() => {
   store.init()
-  store.loadDailyEntries(1)
+  store.loadCurrentWeekEntries()
 })
 
 function onMomentsUpdate(moments) {
