@@ -1,8 +1,16 @@
 <template>
     <div class="kpi-card">
         <span class="kpi-label">{{ label }}</span>
-        <span class="kpi-value">{{ value }}</span>
-        <span v-if="previousValue !== null" :class="['kpi-comparison', directionClass]">
+        <div class="kpi-values">
+            <span class="kpi-current">{{ value }}</span>
+            <span v-if="previousValue !== null" class="kpi-separator">←</span>
+            <span v-if="previousValue !== null" class="kpi-previous">{{ previousValue }}</span>
+        </div>
+        <div v-if="previousValue !== null" class="kpi-labels-row">
+            <span class="kpi-sublabel">actual</span>
+            <span v-if="previousValue !== null" class="kpi-sublabel">anterior</span>
+        </div>
+        <span v-if="previousValue !== null" :class="['kpi-comparison', sentimentClass]">
             {{ arrow }} {{ absDiff }}
         </span>
     </div>
@@ -15,29 +23,34 @@ const props = defineProps({
     label: { type: String, required: true },
     value: { type: Number, required: true },
     previousValue: { type: Number, default: null },
+    lowerIsBetter: { type: Boolean, default: false },
 })
 
 const diff = computed(() => props.value - props.previousValue)
+const absDiff = computed(() => {
+    const val = Math.abs(diff.value)
+    return Number.isInteger(val) ? val : val.toFixed(1)
+})
 
 const direction = computed(() => {
     if (props.previousValue === null) return null
-    if (props.value > props.previousValue) return 'sube'
-    if (props.value < props.previousValue) return 'baja'
-    return 'igual'
+    if (diff.value > 0) return 'up'
+    if (diff.value < 0) return 'down'
+    return 'equal'
 })
 
-const absDiff = computed(() => Math.abs(diff.value))
-
 const arrow = computed(() => {
-    if (direction.value === 'sube') return '▲'
-    if (direction.value === 'baja') return '▼'
+    if (direction.value === 'up') return '▲'
+    if (direction.value === 'down') return '▼'
     return '●'
 })
 
-const directionClass = computed(() => {
-    if (direction.value === 'sube') return 'comparison-up'
-    if (direction.value === 'baja') return 'comparison-down'
-    return 'comparison-equal'
+const sentimentClass = computed(() => {
+    if (direction.value === 'equal') return 'sentiment-neutral'
+    const isGood = props.lowerIsBetter
+        ? direction.value === 'down'
+        : direction.value === 'up'
+    return isGood ? 'sentiment-good' : 'sentiment-bad'
 })
 </script>
 
@@ -50,7 +63,7 @@ const directionClass = computed(() => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.15rem;
     min-width: 0;
     flex: 1;
 }
@@ -62,9 +75,39 @@ const directionClass = computed(() => {
     letter-spacing: 0.05em;
 }
 
-.kpi-value {
+.kpi-values {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.kpi-current {
     font-size: 1.6rem;
     font-weight: 700;
+}
+
+.kpi-separator {
+    font-size: 0.85rem;
+    color: #bbb;
+}
+
+.kpi-previous {
+    font-size: 1rem;
+    color: #999;
+    font-weight: 500;
+}
+
+.kpi-labels-row {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 0.5rem;
+}
+
+.kpi-sublabel {
+    font-size: 0.6rem;
+    color: #aaa;
+    text-transform: lowercase;
 }
 
 .kpi-comparison {
@@ -72,19 +115,20 @@ const directionClass = computed(() => {
     border-radius: 1rem;
     font-size: 0.75rem;
     font-weight: 600;
+    margin-top: 0.15rem;
 }
 
-.comparison-up {
+.sentiment-good {
     background: #e8f5e9;
     color: #2e7d32;
 }
 
-.comparison-down {
+.sentiment-bad {
     background: #ffebee;
     color: #c62828;
 }
 
-.comparison-equal {
+.sentiment-neutral {
     background: #f5f5f5;
     color: #888;
 }

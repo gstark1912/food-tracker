@@ -21,7 +21,9 @@ public record WeeklySummaryResponse(
     int WeeklyScore,
     decimal? WeightKg,
     string WeekStart,
-    string WeekEnd
+    string WeekEnd,
+    int TotalFood = 0,
+    int TotalExercise = 0
 );
 
 public record WeeklySummaryWithTrend(

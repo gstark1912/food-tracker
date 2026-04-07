@@ -4,9 +4,9 @@
         <div v-else-if="statsStore.kpisError" class="kpi-state kpi-error">{{ statsStore.kpisError }}</div>
         <div v-else-if="statsStore.kpis" class="kpi-row">
             <KpiCard label="Promedio Comida" :value="statsStore.kpis.currentWeek.avgFood"
-                :previousValue="statsStore.kpis.previousWeek?.avgFood ?? null" />
+                :previousValue="statsStore.kpis.previousWeek?.avgFood ?? null" :lowerIsBetter="true" />
             <KpiCard label="Total Ejercicio" :value="statsStore.kpis.currentWeek.totalExercise"
-                :previousValue="statsStore.kpis.previousWeek?.totalExercise ?? null" />
+                :previousValue="statsStore.kpis.previousWeek?.totalExercise ?? null" :lowerIsBetter="false" />
         </div>
     </div>
 </template>

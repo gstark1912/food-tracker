@@ -18,7 +18,7 @@
 
         <section class="weeks-section">
           <div class="weeks-list">
-            <div v-for="s in store.summaries" :key="`${s.summary.year}-${s.summary.weekNumber}`">
+            <div v-for="s in pastSummaries" :key="`${s.summary.year}-${s.summary.weekNumber}`">
               <WeekSummaryCard :summary="s" />
               <div v-if="!s.summary.weightKg" class="weight-form">
                 <input v-model.number="weightInputs[`${s.summary.year}-${s.summary.weekNumber}`]" type="number"
@@ -39,7 +39,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive } from 'vue'
+import { onMounted, reactive, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useStatsStore } from '../stores/statsStore.js'
 import WeekSummaryCard from '../components/WeekSummaryCard.vue'
@@ -48,6 +48,12 @@ import KpiCards from '../components/KpiCards.vue'
 
 const store = useStatsStore()
 const weightInputs = reactive({})
+
+const pastSummaries = computed(() => {
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  return store.summaries.filter(s => s.summary.weekEnd < today)
+})
 
 onMounted(() => store.loadStats())
 

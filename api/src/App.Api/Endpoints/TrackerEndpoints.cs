@@ -94,18 +94,6 @@ public static class TrackerEndpoints
     {
         var today = clock.Today;
 
-        var currentWeek = ISOWeek.GetWeekOfYear(today.ToDateTime(TimeOnly.MinValue));
-        var currentYear = ISOWeek.GetYear(today.ToDateTime(TimeOnly.MinValue));
-
-        // Calculate previous week summary if missing
-        var prevWeekDate = today.AddDays(-7).ToDateTime(TimeOnly.MinValue);
-        var prevWeek = ISOWeek.GetWeekOfYear(prevWeekDate);
-        var prevYear = ISOWeek.GetYear(prevWeekDate);
-        await CalculateAndStoreWeeklySummary(db, prevYear, prevWeek);
-
-        // Calculate current week summary if missing
-        await CalculateAndStoreWeeklySummary(db, currentYear, currentWeek);
-
         var oldestPending = await db.DayEntries
             .Where(d => d.Date < today && !d.IsFinalized)
             .OrderBy(d => d.Date)
@@ -236,6 +224,11 @@ public static class TrackerEndpoints
         entry.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
+        // Recalculate weekly summary for the finalized day's week
+        var weekYear = ISOWeek.GetYear(parsedDate.ToDateTime(TimeOnly.MinValue));
+        var weekNumber = ISOWeek.GetWeekOfYear(parsedDate.ToDateTime(TimeOnly.MinValue));
+        await CalculateAndStoreWeeklySummary(db, weekYear, weekNumber);
+
         var today = clock.Today;
         var nextPending = await db.DayEntries
             .Where(d => d.Date < today && !d.IsFinalized)
@@ -265,12 +258,9 @@ public static class TrackerEndpoints
 
         if (existing != null)
         {
-            if (existing.WeeklyScore == 0 && score != 0)
-            {
-                existing.WeeklyScore = score;
-                existing.CalculatedAt = DateTime.UtcNow;
-                await db.SaveChangesAsync();
-            }
+            existing.WeeklyScore = score;
+            existing.CalculatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
             return;
         }
 

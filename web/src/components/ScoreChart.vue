@@ -25,7 +25,10 @@ const props = defineProps({
 })
 
 const chartData = computed(() => {
-  const reversed = [...props.summaries].reverse()
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const past = props.summaries.filter(s => s.summary.weekEnd < today)
+  const reversed = [...past].reverse()
   const labels = reversed.map(s => `S${s.summary.weekNumber}`)
   const scores = reversed.map(s => s.summary.weeklyScore)
   const weights = reversed.map(s => s.summary.weightKg ?? null)

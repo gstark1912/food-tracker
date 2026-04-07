@@ -68,6 +68,24 @@ public static class StatisticsEndpoints
         // Take last N
         var recent = summaries.TakeLast(n).ToList();
 
+        // Preload day entries for all weeks in range
+        DateOnly? rangeStart = null;
+        DateOnly? rangeEnd = null;
+        foreach (var s in recent)
+        {
+            var ws = DateOnly.FromDateTime(ISOWeek.ToDateTime(s.Year, s.WeekNumber, DayOfWeek.Monday));
+            var we = ws.AddDays(6);
+            if (rangeStart == null || ws < rangeStart) rangeStart = ws;
+            if (rangeEnd == null || we > rangeEnd) rangeEnd = we;
+        }
+
+        var dayEntries = rangeStart != null
+            ? await db.DayEntries
+                .Include(d => d.Moments)
+                .Where(d => d.Date >= rangeStart && d.Date <= rangeEnd)
+                .ToListAsync()
+            : new List<DayEntry>();
+
         var result = new List<WeeklySummaryWithTrend>();
         for (int i = 0; i < recent.Count; i++)
         {
@@ -83,6 +101,10 @@ public static class StatisticsEndpoints
             var weekStart = DateOnly.FromDateTime(ISOWeek.ToDateTime(current.Year, current.WeekNumber, DayOfWeek.Monday));
             var weekEnd = weekStart.AddDays(6);
 
+            var weekDays = dayEntries.Where(d => d.Date >= weekStart && d.Date <= weekEnd).ToList();
+            var totalFood = weekDays.SelectMany(d => d.Moments).Sum(m => m.Food);
+            var totalExercise = weekDays.SelectMany(d => d.Moments).Sum(m => m.Exercise);
+
             result.Add(new WeeklySummaryWithTrend(
                 new WeeklySummaryResponse(
                     current.Year,
@@ -90,7 +112,9 @@ public static class StatisticsEndpoints
                     current.WeeklyScore,
                     current.WeightKg,
                     weekStart.ToString("yyyy-MM-dd"),
-                    weekEnd.ToString("yyyy-MM-dd")
+                    weekEnd.ToString("yyyy-MM-dd"),
+                    totalFood,
+                    totalExercise
                 ),
                 trend
             ));
