@@ -224,10 +224,13 @@ public static class TrackerEndpoints
         entry.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
-        // Recalculate weekly summary for the finalized day's week
+        // Create weekly summary if it doesn't exist yet
         var weekYear = ISOWeek.GetYear(parsedDate.ToDateTime(TimeOnly.MinValue));
         var weekNumber = ISOWeek.GetWeekOfYear(parsedDate.ToDateTime(TimeOnly.MinValue));
         await CalculateAndStoreWeeklySummary(db, weekYear, weekNumber);
+
+        // Fix any past weeks that got stuck with score 0
+        await RecalculateZeroScoreWeeks(db);
 
         var today = clock.Today;
         var nextPending = await db.DayEntries
@@ -241,6 +244,10 @@ public static class TrackerEndpoints
 
     private static async Task CalculateAndStoreWeeklySummary(AppDbContext db, int year, int weekNumber)
     {
+        var existing = await db.WeeklySummaries
+            .FirstOrDefaultAsync(w => w.Year == year && w.WeekNumber == weekNumber);
+        if (existing != null) return;
+
         var weekStart = DateOnly.FromDateTime(ISOWeek.ToDateTime(year, weekNumber, DayOfWeek.Monday));
         var weekEnd = weekStart.AddDays(6);
 
@@ -251,27 +258,45 @@ public static class TrackerEndpoints
 
         var totalFood = entries.SelectMany(e => e.Moments).Sum(m => m.Food);
         var totalExercise = entries.SelectMany(e => e.Moments).Sum(m => m.Exercise);
-        var score = totalFood - totalExercise;
-
-        var existing = await db.WeeklySummaries
-            .FirstOrDefaultAsync(w => w.Year == year && w.WeekNumber == weekNumber);
-
-        if (existing != null)
-        {
-            existing.WeeklyScore = score;
-            existing.CalculatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync();
-            return;
-        }
 
         db.WeeklySummaries.Add(new WeeklySummary
         {
             Id = Guid.NewGuid(),
             Year = year,
             WeekNumber = weekNumber,
-            WeeklyScore = score,
+            WeeklyScore = totalFood - totalExercise,
             CalculatedAt = DateTime.UtcNow
         });
+
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task RecalculateZeroScoreWeeks(AppDbContext db)
+    {
+        var zeroWeeks = await db.WeeklySummaries
+            .Where(w => w.WeeklyScore == 0)
+            .ToListAsync();
+
+        foreach (var week in zeroWeeks)
+        {
+            var weekStart = DateOnly.FromDateTime(ISOWeek.ToDateTime(week.Year, week.WeekNumber, DayOfWeek.Monday));
+            var weekEnd = weekStart.AddDays(6);
+
+            var entries = await db.DayEntries
+                .Include(d => d.Moments)
+                .Where(d => d.Date >= weekStart && d.Date <= weekEnd)
+                .ToListAsync();
+
+            var totalFood = entries.SelectMany(e => e.Moments).Sum(m => m.Food);
+            var totalExercise = entries.SelectMany(e => e.Moments).Sum(m => m.Exercise);
+            var score = totalFood - totalExercise;
+
+            if (score != 0)
+            {
+                week.WeeklyScore = score;
+                week.CalculatedAt = DateTime.UtcNow;
+            }
+        }
 
         await db.SaveChangesAsync();
     }
