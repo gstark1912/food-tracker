@@ -97,11 +97,14 @@ public static class TrackerEndpoints
         var currentWeek = ISOWeek.GetWeekOfYear(today.ToDateTime(TimeOnly.MinValue));
         var currentYear = ISOWeek.GetYear(today.ToDateTime(TimeOnly.MinValue));
 
-        var existingSummary = await db.WeeklySummaries
-            .FirstOrDefaultAsync(w => w.Year == currentYear && w.WeekNumber == currentWeek);
+        // Calculate previous week summary if missing
+        var prevWeekDate = today.AddDays(-7).ToDateTime(TimeOnly.MinValue);
+        var prevWeek = ISOWeek.GetWeekOfYear(prevWeekDate);
+        var prevYear = ISOWeek.GetYear(prevWeekDate);
+        await CalculateAndStoreWeeklySummary(db, prevYear, prevWeek);
 
-        if (existingSummary == null)
-            await CalculateAndStoreWeeklySummary(db, currentYear, currentWeek);
+        // Calculate current week summary if missing
+        await CalculateAndStoreWeeklySummary(db, currentYear, currentWeek);
 
         var oldestPending = await db.DayEntries
             .Where(d => d.Date < today && !d.IsFinalized)
@@ -245,10 +248,6 @@ public static class TrackerEndpoints
 
     private static async Task CalculateAndStoreWeeklySummary(AppDbContext db, int year, int weekNumber)
     {
-        var existing = await db.WeeklySummaries
-            .FirstOrDefaultAsync(w => w.Year == year && w.WeekNumber == weekNumber);
-        if (existing != null) return;
-
         var weekStart = DateOnly.FromDateTime(ISOWeek.ToDateTime(year, weekNumber, DayOfWeek.Monday));
         var weekEnd = weekStart.AddDays(6);
 
@@ -259,18 +258,34 @@ public static class TrackerEndpoints
 
         var totalFood = entries.SelectMany(e => e.Moments).Sum(m => m.Food);
         var totalExercise = entries.SelectMany(e => e.Moments).Sum(m => m.Exercise);
+        var score = totalFood - totalExercise;
+
+        var existing = await db.WeeklySummaries
+            .FirstOrDefaultAsync(w => w.Year == year && w.WeekNumber == weekNumber);
+
+        if (existing != null)
+        {
+            if (existing.WeeklyScore == 0 && score != 0)
+            {
+                existing.WeeklyScore = score;
+                existing.CalculatedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync();
+            }
+            return;
+        }
 
         db.WeeklySummaries.Add(new WeeklySummary
         {
             Id = Guid.NewGuid(),
             Year = year,
             WeekNumber = weekNumber,
-            WeeklyScore = totalFood - totalExercise,
+            WeeklyScore = score,
             CalculatedAt = DateTime.UtcNow
         });
 
         await db.SaveChangesAsync();
     }
+
 
     private static async Task<DayEntry> GetOrCreateDayEntry(AppDbContext db, DateOnly date)
     {
