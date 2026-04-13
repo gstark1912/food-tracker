@@ -244,29 +244,37 @@ public static class TrackerEndpoints
 
     private static async Task CalculateAndStoreWeeklySummary(AppDbContext db, int year, int weekNumber)
     {
-        var existing = await db.WeeklySummaries
-            .FirstOrDefaultAsync(w => w.Year == year && w.WeekNumber == weekNumber);
-        if (existing != null) return;
-
         var weekStart = DateOnly.FromDateTime(ISOWeek.ToDateTime(year, weekNumber, DayOfWeek.Monday));
         var weekEnd = weekStart.AddDays(6);
 
         var entries = await db.DayEntries
             .Include(d => d.Moments)
-            .Where(d => d.Date >= weekStart && d.Date <= weekEnd)
+            .Where(d => d.IsFinalized && d.Date >= weekStart && d.Date <= weekEnd)
             .ToListAsync();
 
         var totalFood = entries.SelectMany(e => e.Moments).Sum(m => m.Food);
         var totalExercise = entries.SelectMany(e => e.Moments).Sum(m => m.Exercise);
+        var score = totalFood - totalExercise;
 
-        db.WeeklySummaries.Add(new WeeklySummary
+        var existing = await db.WeeklySummaries
+            .FirstOrDefaultAsync(w => w.Year == year && w.WeekNumber == weekNumber);
+
+        if (existing != null)
         {
-            Id = Guid.NewGuid(),
-            Year = year,
-            WeekNumber = weekNumber,
-            WeeklyScore = totalFood - totalExercise,
-            CalculatedAt = DateTime.UtcNow
-        });
+            existing.WeeklyScore = score;
+            existing.CalculatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            db.WeeklySummaries.Add(new WeeklySummary
+            {
+                Id = Guid.NewGuid(),
+                Year = year,
+                WeekNumber = weekNumber,
+                WeeklyScore = score,
+                CalculatedAt = DateTime.UtcNow
+            });
+        }
 
         await db.SaveChangesAsync();
     }
@@ -284,7 +292,7 @@ public static class TrackerEndpoints
 
             var entries = await db.DayEntries
                 .Include(d => d.Moments)
-                .Where(d => d.Date >= weekStart && d.Date <= weekEnd)
+                .Where(d => d.IsFinalized && d.Date >= weekStart && d.Date <= weekEnd)
                 .ToListAsync();
 
             var totalFood = entries.SelectMany(e => e.Moments).Sum(m => m.Food);
